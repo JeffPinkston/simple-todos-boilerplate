@@ -1,11 +1,21 @@
+import 'react-datepicker/dist/react-datepicker.css';
 import React, { Component, PropTypes } from 'react';
+import moment from 'moment';
 import ReactDOM from 'react-dom';
 import { Meteor } from 'meteor/meteor';
 import { createContainer } from 'meteor/react-meteor-data';
+import { DropdownButton } from 'react-bootstrap';
+import { MenuItem } from 'react-bootstrap';
+import { Button } from 'react-bootstrap';
+import { Table } from 'react-bootstrap';
+import { Panel } from 'react-bootstrap';
+import  DatePicker  from 'react-datepicker';
 
 import { Tasks } from '../api/tasks.js';
+import { Albums } from '../api/albums.js';
 
 import Task from './Task.jsx';
+import Album from './Album.jsx';
 import AccountsUIWrapper from './AccountsUIWrapper.jsx';
 
 //App component - represents the whole App
@@ -14,7 +24,10 @@ class App extends Component {
     super(props);
 
     this.state = {
-      hideCompleted: false
+      hideCompleted: false,
+      panelOpen: false,
+      selectedDate: moment(),
+      albumName: ''
     }
   }
 
@@ -41,6 +54,24 @@ class App extends Component {
     })
   }
 
+  handleAlbumChange(e) {
+    console.log(e);
+  }
+
+  handlePanelToggle() {
+     this.setState({ panelOpen: !this.state.panelOpen });
+  }
+
+  handleDateChange(date) {
+    this.setState({ selectedDate: date });
+  }
+
+  handleNameChange() {
+    const name = ReactDOM.findDOMNode(this.refs.albumName).value.trim();
+
+    this.setState({ albumName: name });
+  }
+
   renderTasks() {
     let filteredTasks = this.props.tasks;
     if(this.state.hideCompleted){
@@ -48,6 +79,13 @@ class App extends Component {
     }
     return filteredTasks.map((task) => (
       <Task key={task._id} task={task} />
+    ));
+  }
+
+  renderAlbums() {
+    let albums = this.props.albums;
+    return albums.map((ablum) => (
+      <Ablum key={album._id} album={album} />
     ));
   }
 
@@ -79,7 +117,35 @@ class App extends Component {
           }
 
         </header>
-
+        <DropdownButton bsStyle={'default'} id={'album-dropdown'} title={'Album'} onSelect={this.handleAlbumChange.bind(this)}>
+          <MenuItem eventKey="1">Ten</MenuItem>
+          <MenuItem eventKey="2">VS</MenuItem>
+        </DropdownButton>
+        <Button onClick={this.handlePanelToggle.bind(this)}>
+          Open
+        </Button>
+        <Panel collapsible expanded={this.state.panelOpen}>
+        <Table striped bordered condensed hover responsive>
+          <thead>
+            <tr>
+              <th>Album</th>
+              <th>Created On</th>
+            </tr>
+          </thead>
+          <tbody>
+              {this.renderAlbums()}
+          </tbody>
+        </Table>
+        <input
+          type="text"
+          ref="albumName"
+          placeholder="Album Name"
+          onChange={this.handleNameChange.bind(this)}
+          />
+        <DatePicker
+          selected={this.state.selectedDate}
+          onChange={this.handleDateChange.bind(this)}/>
+        </Panel>
         <ul>
           {this.renderTasks()}
         </ul>
@@ -97,6 +163,8 @@ App.propTypes = {
 export default createContainer(() => {
   return {
     tasks: Tasks.find({}, {sort: { createdAt: -1 } }).fetch(),
+    albums: Albums.find({}).fetch(),
+    albumCount: Albums.find({}).count(),
     incompleteCount: Tasks.find({ checked: { $ne: true } }).count(),
     currentUser: Meteor.user()
   };
